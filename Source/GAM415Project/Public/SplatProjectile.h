@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 #include "SplatProjectile.generated.h"
 
 class USphereComponent;
@@ -10,6 +12,7 @@ class UStaticMeshComponent;
 class UProjectileMovementComponent;
 class UMaterialInterface;
 class UDecalComponent;
+class UNiagaraSystem;
 
 UCLASS()
 class GAM415PROJECT_API ASplatProjectile : public AActor
@@ -58,6 +61,9 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Decal")
     TArray<UTexture2D*> SplatTextures;
 
+    UPROPERTY(EditDefaultsOnly, Category = "Effects")
+    UNiagaraSystem* NiagaraSplatEffect;
+
     // Color value for both projectile and decal
     FLinearColor ProjectileColor;
 
@@ -67,9 +73,12 @@ protected:
                UPrimitiveComponent* OtherComp, FVector NormalImpulse,
                const FHitResult& Hit);
 
-    // Spawns decal to represent the splat
-    void SpawnSplatDecal(const FHitResult& Hit);
-
     // Applies force to physics object
     void ApplyForce(UPrimitiveComponent* OtherComp);
+
+    // Spawns Niagara splat effect
+    void SpawnEffect(const FHitResult& Hit);
+
+    // Spawns decal to represent the splat
+    void SpawnSplatDecal(const FHitResult& Hit);
 };
