@@ -5,6 +5,8 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Components/DecalComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 
 ASplatProjectile::ASplatProjectile()
 {
@@ -76,7 +78,33 @@ void ASplatProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor,
             ApplyForce(OtherComp);
         }
     }
+
+    SpawnEffect(Hit);
     Destroy();
+}
+
+void ASplatProjectile::ApplyForce(UPrimitiveComponent* OtherComp)
+{
+    OtherComp->AddImpulseAtLocation(GetVelocity() * 100.0f, GetActorLocation());
+}
+
+void ASplatProjectile::SpawnEffect(const FHitResult& Hit)
+{
+    if (!NiagaraSplatEffect) return;
+
+    UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+        GetWorld(),
+        NiagaraSplatEffect,
+        Hit.ImpactPoint,
+        Hit.ImpactNormal.Rotation(),
+        FVector::OneVector,
+        true // Auto destroy
+    );
+
+    if (!NiagaraComp) return;
+
+    // Set color parameter
+    NiagaraComp->SetVariableLinearColor("Color", ProjectileColor);
 }
 
 void ASplatProjectile::SpawnSplatDecal(const FHitResult& Hit)
@@ -93,23 +121,17 @@ void ASplatProjectile::SpawnSplatDecal(const FHitResult& Hit)
         DecalLifetime
     );
 
-    if (Decal)
-    {
-        // For fade effect in decal material
-        if (DecalLifetime != 0)
-            Decal->SetFadeOut(DecalLifetime - DecalFadeOutLength, DecalFadeOutLength);
+    if (!Decal) return;
 
-        // Get random splat texture
-        UTexture2D* RandomTexture = SplatTextures[FMath::RandRange(0, SplatTextures.Num() - 1)];
+    // For fade effect in decal material
+    if (DecalLifetime != 0)
+        Decal->SetFadeOut(DecalLifetime - DecalFadeOutLength, DecalFadeOutLength);
 
-        // Configure decal material
-        UMaterialInstanceDynamic* DecalMaterialInstance = Decal->CreateDynamicMaterialInstance();
-        DecalMaterialInstance->SetTextureParameterValue("Texture", RandomTexture);
-        DecalMaterialInstance->SetVectorParameterValue("Color", ProjectileColor);
-    }
-}
+    // Get random splat texture
+    UTexture2D* RandomTexture = SplatTextures[FMath::RandRange(0, SplatTextures.Num() - 1)];
 
-void ASplatProjectile::ApplyForce(UPrimitiveComponent* OtherComp)
-{
-    OtherComp->AddImpulseAtLocation(GetVelocity() * 100.0f, GetActorLocation());
+    // Configure decal material
+    UMaterialInstanceDynamic* DecalMaterialInstance = Decal->CreateDynamicMaterialInstance();
+    DecalMaterialInstance->SetTextureParameterValue("Texture", RandomTexture);
+    DecalMaterialInstance->SetVectorParameterValue("Color", ProjectileColor);
 }
